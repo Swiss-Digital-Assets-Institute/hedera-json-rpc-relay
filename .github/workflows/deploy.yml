@@ -32,10 +32,6 @@ jobs:
             SERVICE=$service yq eval -i '.services.[env(SERVICE)].image="${{ env.REGISTRY }}${{ env.APP_NAME }}-$service:${{ steps.vars.outputs.image_tag }}"' docker-compose.yml
           done
 
-      - name: Upgrade docker-compose
-        run: |
-          apt-get install --only-upgrade docker-compose docker
-
       - name: Build containers
         run: docker compose -f docker-compose.yml build --pull
 
