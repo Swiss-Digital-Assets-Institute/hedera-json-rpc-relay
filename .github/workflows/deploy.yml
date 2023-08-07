@@ -69,7 +69,7 @@ jobs:
         with:
           method: service-account
           k8s-url: ${{ secrets.EKS_ENDPOINT }}
-          k8s-secret: >-
+          token: >-
             ${{ secrets.EKS_SA_SECRET }}
 
       - name: Deploy to Kubernetes
