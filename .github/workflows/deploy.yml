@@ -71,5 +71,8 @@ jobs:
           k8s-url: ${{ secrets.EKS_ENDPOINT }}
           k8s-secret: ${{ secrets.EKS_SA_SECRET }}
 
+      - name: Check kubeconfig
+        run: cat $KUBECONFIG
+
       - name: Deploy to Kubernetes
         run: kubectl apply -f $GITHUB_WORKSPACE/out
