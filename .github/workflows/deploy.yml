@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    needs: tests
+    needs: test-node
     env:
       SERVICES: relay,relay-ws
       APP_NAME: rpc-relay

@@ -1,8 +1,6 @@
 version: "3.7"
 services:
   relay:
-    container_name: hedera-json-rpc-relay
-    image: "ghcr.io/hashgraph/hedera-json-rpc-relay:main"
     restart: "unless-stopped"
     ports:
       - 7546:7546
@@ -11,9 +9,10 @@ services:
     volumes:
       - ./.env:/home/node/app/.env
   relay-ws:
-    container_name: hedera-json-rpc-relay-ws
-    image: "ghcr.io/hashgraph/hedera-json-rpc-relay:main"
-    command: start:ws
+    command: 
+      - npm
+      - run
+      - start:ws
     environment:
       HEALTHCHECK_PORT: 8547
       SUBSCRIPTIONS_ENABLED: "true"
