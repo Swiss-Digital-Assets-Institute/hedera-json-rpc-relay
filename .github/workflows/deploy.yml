@@ -27,17 +27,7 @@ jobs:
           echo "image_tag=${{ env.ENVIRONMENT }}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set Docker image
-        run: |
-        OLDIFS="$IFS"
-        IFS=','
-        read -ra SERVICE_LIST <<EOF
-        ${{ env.SERVICES }}
-        EOF
-        IFS="$OLDIFS"
-
-        for service in "${SERVICE_LIST[@]}"; do
-          SERVICE=$service yq eval -i '.services.[env(SERVICE)].image="${{ env.REGISTRY }}$SERVICE:${{ steps.vars.outputs.image_tag }}"' docker-compose.yml
-        done
+        run: ./deploy/set_images.sh        
 
       - name: Build containers
         run: docker compose -f docker-compose.yml build --pull
