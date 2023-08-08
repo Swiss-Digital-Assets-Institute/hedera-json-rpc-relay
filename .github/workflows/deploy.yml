@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SERVICES: relay,relay-ws
-      APP_NAME: rpc-relay
+      APP_NAME: hedera-json-rpc
       ENVIRONMENT: dev
       REGISTRY: ${{ secrets.ECR_REGISTRY }}
       K8S_VERSION: v1.27.0
@@ -27,7 +27,7 @@ jobs:
           echo "image_tag=${{ env.ENVIRONMENT }}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set Docker image
-        run: IMAGE_TAG=${{ steps.vars.outputs.image_tag }} REGISTRY=${{ env.REGISTRY }} SERVICES=${{ env.SERVICES }} ./deploy/set_images.sh
+        run: APP_NAME=${{ env.APP_NAME}} IMAGE_TAG=${{ steps.vars.outputs.image_tag }} REGISTRY=${{ env.REGISTRY }} SERVICES=${{ env.SERVICES }} ./deploy/set_images.sh
 
       - name: Build containers
         run: docker compose -f docker-compose.yml build --pull
