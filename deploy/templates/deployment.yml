@@ -73,7 +73,7 @@ spec:
               fieldPath: metadata.labels['tags.datadoghq.com/version']
         envFrom:
         - secretRef:
-            name: env-{{ name }}
+            name: env-{{ app }}
         {% if secrets %}
         - secretRef:
             {% set env_name = secretPath.split('/')  %}
