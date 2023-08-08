@@ -2,8 +2,8 @@ common: &common
   name: relay-ws
   serviceSpecificSecret: false
   port:
-    source: 7546
-    target: 7546
+    source: 8546
+    target: 8546
     name: relay-ws
 
   resources:
@@ -18,7 +18,7 @@ common: &common
     failureThreshold: 15
     httpGet:
       path: /health/liveness
-      port: 7546
+      port: 8547
       scheme: HTTP
     initialDelaySeconds: 25
     periodSeconds: 30
@@ -29,7 +29,7 @@ common: &common
     failureThreshold: 15
     httpGet:
       path: /health/liveness
-      port: 7546
+      port: 8547
       scheme: HTTP
     initialDelaySeconds: 25
     periodSeconds: 5
