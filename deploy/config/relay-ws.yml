@@ -2,8 +2,8 @@ common: &common
   name: relay-ws
   serviceSpecificSecret: false
   port:
-    source: 3000
-    target: 3000
+    source: 7546
+    target: 7546
     name: relay-ws
 
   resources:

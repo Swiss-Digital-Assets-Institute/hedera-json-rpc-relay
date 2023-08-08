@@ -3,10 +3,12 @@ services:
   relay:
     build:
       context: .
+      target: relay
       dockerfile: docker/Dockerfile
 
   relay-ws:
     build:
       context: .
+      target: relay-ws
       dockerfile: docker/Dockerfile
  

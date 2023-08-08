@@ -1,4 +1,4 @@
-FROM ghcr.io/swiss-digital-assets-institute/nodejs:main
+FROM ghcr.io/swiss-digital-assets-institute/nodejs:main as relay
 
 ENV NODE_ENV production
 
@@ -33,3 +33,8 @@ USER node
 WORKDIR /app
 
 CMD ["npm", "run", "start"]
+
+
+FROM relay as relay-ws
+
+CMD ["npm", "run", "start:ws"]
