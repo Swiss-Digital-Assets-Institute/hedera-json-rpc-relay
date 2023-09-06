@@ -2,7 +2,7 @@
  *
  * Hedera JSON RPC Relay
  *
- * Copyright (C) 2022 Hedera Hashgraph, LLC
+ * Copyright (C) 2023 Hedera Hashgraph, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,6 +73,9 @@ export const methodConfiguration = {
     total: tier2rateLimit,
   },
   eth_chainId: {
+    total: tier2rateLimit,
+  },
+  eth_getFilterChanges: {
     total: tier2rateLimit,
   },
   eth_getLogs: {
@@ -150,7 +153,22 @@ export const methodConfiguration = {
   eth_accounts: {
     total: tier2rateLimit,
   },
+  eth_newBlockFilter: {
+    total: tier2rateLimit,
+  },
+  eth_newPendingTransactionFilter: {
+    total: tier2rateLimit,
+  },
+  eth_newFilter: {
+    total: tier2rateLimit,
+  },
   web3_client_version: {
     total: tier3rateLimit,
+  },
+  eth_uninstallFilter: {
+    total: tier2rateLimit,
+  },
+  eth_getFilterLogs: {
+    total: tier2rateLimit,
   },
 };

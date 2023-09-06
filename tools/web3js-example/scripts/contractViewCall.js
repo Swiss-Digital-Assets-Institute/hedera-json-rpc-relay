@@ -2,7 +2,7 @@
  *
  * Hedera JSON RPC Relay - Web3js Example
  *
- * Copyright (C) 2022 Hedera Hashgraph, LLC
+ * Copyright (C) 2023 Hedera Hashgraph, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,13 @@
 
 require('dotenv').config();
 const fs = require('fs');
-const Web3 = require('web3');
-const Web3HttpProvider = require('web3-providers-http');
+const { Web3 } = require('web3');
 
 module.exports = async (address) => {
   const { abi } = await JSON.parse(fs.readFileSync(__dirname + '/../contract/Greeter.json'));
-  const web3 = new Web3(new Web3HttpProvider(process.env.RELAY_ENDPOINT));
+  const web3 = new Web3(new Web3.providers.HttpProvider(process.env.RELAY_ENDPOINT));
   const wallet = await web3.eth.accounts.wallet.add(process.env.OPERATOR_PRIVATE_KEY);
-  const greeter = new web3.eth.Contract(abi, address, { from: wallet.address, gas: 300000 });
+  const greeter = new web3.eth.Contract(abi, address, { from: wallet[0].address, gas: 300000 });
 
   const callRes = await greeter.methods.greet().call();
   console.log(`Contract call result: ${callRes}`);

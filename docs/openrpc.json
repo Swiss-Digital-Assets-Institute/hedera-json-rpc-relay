@@ -3,28 +3,28 @@
     "info": {
         "title": "Hedera JSON-RPC Specification",
         "description": "A specification of the implemented Ethereum JSON RPC APIs interface for Hedera clients and adheres to the Ethereum execution APIs schema.",
-        "version": "0.27.0-SNAPSHOT"
+        "version": "0.31.0-SNAPSHOT"
     },
     "servers": [
         {
-          "name": "Mainnet",
-          "url": "https://mainnet.hashio.io/api",
-          "description": "Hedera Mainnet endpoint, hosted by [Hashio](https://swirldslabs.com/hashio/), a JSON-RPC Relay Community Service. Rate limited based [on IP address](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/rate-limiting.md) and [on global HBAR spend](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/hbar-limiting.md)."
+            "name": "Mainnet",
+            "url": "https://mainnet.hashio.io/api",
+            "description": "Hedera Mainnet endpoint, hosted by [Hashio](https://swirldslabs.com/hashio/), a JSON-RPC Relay Community Service. Rate limited based [on IP address](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/rate-limiting.md) and [on global HBAR spend](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/hbar-limiting.md)."
         },
         {
-          "name": "Testnet",
-          "url": "https://testnet.hashio.io/api",
-          "description": "Hedera Testnet endpoint, hosted by [Hashio](https://swirldslabs.com/hashio/), a JSON-RPC Relay Community Service. Rate limited based [on IP address](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/rate-limiting.md) and [on global HBAR spend](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/hbar-limiting.md)."
+            "name": "Testnet",
+            "url": "https://testnet.hashio.io/api",
+            "description": "Hedera Testnet endpoint, hosted by [Hashio](https://swirldslabs.com/hashio/), a JSON-RPC Relay Community Service. Rate limited based [on IP address](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/rate-limiting.md) and [on global HBAR spend](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/hbar-limiting.md)."
         },
         {
-          "name": "Previewnet",
-          "url": "https://previewnet.hashio.io/api",
-          "description": "Hedera Previewnet endpoint, hosted by [Hashio](https://swirldslabs.com/hashio/), a JSON-RPC Relay Community Service. Rate limited based [on IP address](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/rate-limiting.md) and [on global HBAR spend](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/hbar-limiting.md)."
+            "name": "Previewnet",
+            "url": "https://previewnet.hashio.io/api",
+            "description": "Hedera Previewnet endpoint, hosted by [Hashio](https://swirldslabs.com/hashio/), a JSON-RPC Relay Community Service. Rate limited based [on IP address](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/rate-limiting.md) and [on global HBAR spend](https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/hbar-limiting.md)."
         },
         {
-          "name": "localhost",
-          "url": "http://localhost:7564",
-          "description": "Run your own instance of [`hedera-json-rpc-relay`](https://github.com/hashgraph/hedera-json-rpc-relay) on `localhost`, and configure it connect to your choice of Hedera networks. No rate limits apply."
+            "name": "localhost",
+            "url": "http://localhost:7564",
+            "description": "Run your own instance of [`hedera-json-rpc-relay`](https://github.com/hashgraph/hedera-json-rpc-relay) on `localhost`, and configure it connect to your choice of Hedera networks. No rate limits apply."
         }
     ],
     "methods": [
@@ -631,6 +631,119 @@
             }
         },
         {
+            "name": "eth_newBlockFilter",
+            "summary": "Creates a filter object, to notify of newly created blocks",
+            "params": [],
+            "result": {
+                "name": "Filter ID",
+                "schema": {
+                    "$ref": "#/components/schemas/hash16"
+                }
+            },
+            "tags": [{ "name": "alpha API"}]
+        },
+        {
+            "name": "eth_newFilter",
+            "summary": "Creates a filter object, based on filter options, to notify when the state changes (logs)",
+            "params": [
+                {
+                    "name": "LogFilter",
+                    "schema": {
+                        "$ref": "#/components/schemas/LogFilter"
+                    }
+                }
+            ],
+            "result": {
+                "name": "Filter ID",
+                "schema": {
+                    "$ref": "#/components/schemas/hash16"
+                }
+            },
+            "tags": [{ "name": "alpha API"}]
+        },
+        {
+            "name": "eth_uninstallFilter",
+            "summary": "Uninstalls a filter with given id",
+            "params": [
+                {
+                    "name": "FilterID",
+                    "schema": {
+                        "$ref": "#/components/schemas/hash16"
+                    }
+                }
+            ],
+            "result": {
+                "name": "Uninstall status",
+                "schema": {
+                    "type": "boolean"
+                }
+            },
+            "tags": [{ "name": "alpha API"}]
+        },
+        {
+            "name": "eth_newPendingTransactionFilter",
+            "summary": "Always returns UNSUPPORTED_METHOD error.",
+            "params": [],
+            "result": {
+                "$ref": "#/components/schemas/unsupportedError"
+            },
+            "tags": [{ "name": "alpha API"}]
+        },
+        {
+            "name": "eth_getFilterLogs",
+            "summary": "Returns an array of all logs matching filter with given id.",
+            "params": [
+                {
+                    "name": "Filter ID",
+                    "schema": {
+                        "$ref": "#/components/schemas/hash16"
+                    }
+                }
+            ],
+            "result": {
+                "name": "Filter result",
+                "schema": {
+                    "$ref": "#/components/schemas/FilterResults"
+                }
+            },
+            "tags": [{ "name": "alpha API" }]
+        },
+        {
+            "name": "eth_getFilterChanges",
+            "summary": "Gets the latest results since the last request for a provided filter according to its type",
+            "params": [
+                {
+                    "name": "Filter ID",
+                    "schema": {
+                        "$ref": "#/components/schemas/hash16"
+                    }
+                }
+            ],
+            "result": {
+                "name": "Filter result",
+                "schema": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "blockHash": {
+                                    "title": "block hash",
+                                    "$ref": "#/components/schemas/hash32"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Log objects",
+                            "schema": {
+                                "$ref": "#/components/schemas/FilterResults"
+                            }
+                        }
+                    ]
+                }
+            },
+            "tags": [{ "name": "alpha API"}]
+        },
+        {
             "name": "eth_protocolVersion",
             "summary": "Always returns UNSUPPORTED_METHOD error.",
             "params": [],
@@ -805,6 +918,11 @@
                 "type": "string",
                 "pattern": "^0x[0-9a-f]{64}$"
             },
+            "hash16": {
+                "title": "16 byte hex value",
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{32}$"
+            },
             "hash32": {
                 "title": "32 byte hex value",
                 "type": "string",
@@ -835,7 +953,9 @@
                     "nonce",
                     "size",
                     "transactions",
-                    "uncles"
+                    "uncles",
+                    "withdrawals",
+                    "withdrawalsRoot"
                 ],
                 "properties": {
                     "parentHash": {
@@ -934,6 +1054,15 @@
                         "items": {
                             "$ref": "#/components/schemas/hash32"
                         }
+                    },
+                    "withdrawals": {
+                        "title": "Withdrawals",
+                        "type": "array",
+                        "default": []
+                    },
+                    "withdrawalsRoot": {
+                        "title": "Withdrawals root",
+                        "default": "0x0"
                     }
                 }
             },
@@ -1030,8 +1159,7 @@
                     },
                     "accessList": {
                         "title": "accessList",
-                        "description": "not supported",
-                        "$ref": "#/components/schemas/null"
+                        "type" : "array"
                     },
                     "chainId": {
                         "title": "chainId",
@@ -1106,7 +1234,15 @@
                             "yParity": {
                                 "title": "yParity",
                                 "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.",
-                                "$ref": "#/components/schemas/uint"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/byte"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/null"
+                                    }
+                                ]
+
                             },
                             "r": {
                                 "title": "r",
@@ -1147,7 +1283,16 @@
                         "properties": {
                             "v": {
                                 "title": "v",
-                                "$ref": "#/components/schemas/uint"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/uint"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/null"
+                                    }
+                                ]
+                               
+                                
                             },
                             "r": {
                                 "title": "r",
@@ -1431,6 +1576,28 @@
                         }
                     }
                 ]
+            },
+            "LogFilter": {
+                "title": "log filter",
+                "type": "object",
+                "properties": {
+                    "fromBlock": {
+                        "title": "from block",
+                        "$ref": "#/components/schemas/uint"
+                    },
+                    "toBlock": {
+                        "title": "to block",
+                        "$ref": "#/components/schemas/uint"
+                    },
+                    "address": {
+                        "title": "Address",
+                        "$ref": "#/components/schemas/address"
+                    },
+                    "topics": {
+                        "title": "Topics",
+                        "$ref": "#/components/schemas/FilterTopics"
+                    }
+                }
             },
             "unsupportedError": {
                 "name": "Unsupported Error",
