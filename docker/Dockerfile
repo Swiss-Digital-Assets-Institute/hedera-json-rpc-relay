@@ -25,8 +25,7 @@ COPY --chown=node:node ./packages/ /app/packages/
 RUN npm ci -q --omit=dev --ignore-scripts && \
     npm cache clean --force --loglevel=error
 
-RUN npm run setup && \
-    npm install pnpm && \
+RUN npm install pnpm && \
     npm run build
 
 USER node 
