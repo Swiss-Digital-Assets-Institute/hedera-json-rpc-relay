@@ -1,0 +1,41 @@
+common: &common
+  name: relay-ws
+  serviceSpecificSecret: false
+  port:
+    source: 8546
+    target: 8546
+    name: relay-ws
+
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+  livenessProbe:
+    failureThreshold: 15
+    httpGet:
+      path: /health/liveness
+      port: 8547
+      scheme: HTTP
+    initialDelaySeconds: 25
+    periodSeconds: 30
+    successThreshold: 1
+    timeoutSeconds: 3
+ 
+  readinessProbe:
+    failureThreshold: 15
+    httpGet:
+      path: /health/liveness
+      port: 8547
+      scheme: HTTP
+    initialDelaySeconds: 25
+    periodSeconds: 5
+    successThreshold: 1
+    timeoutSeconds: 3
+
+dev:
+  <<: *common
+  kubeNamespace: dev
