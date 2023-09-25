@@ -90,23 +90,23 @@ export class MirrorNodeClient {
 
   static acceptedErrorStatusesResponsePerRequestPathMap: Map<string, Array<number>> = new Map([
     [MirrorNodeClient.GET_ACCOUNTS_BY_ID_ENDPOINT, [404]],
-    [MirrorNodeClient.GET_BALANCE_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_BLOCK_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_BLOCKS_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULTS_BY_ADDRESS_ENDPOINT, [206, 400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULTS_DETAILS_BY_CONTRACT_ID_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULTS_DETAILS_BY_ADDRESS_AND_TIMESTAMP_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULT_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULT_LOGS_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULT_LOGS_BY_ADDRESS_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_CONTRACT_RESULTS_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_NETWORK_EXCHANGERATE_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_NETWORK_FEES_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_TOKENS_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.GET_TRANSACTIONS_ENDPOINT, [400, 404]],
-    [MirrorNodeClient.CONTRACT_CALL_ENDPOINT, [404, 415, 500]],
-    [MirrorNodeClient.CONTRACT_ADDRESS_STATE_ENDPOINT, [400, 404]],
+    [MirrorNodeClient.GET_BALANCE_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_BLOCK_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_BLOCKS_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULTS_BY_ADDRESS_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULTS_DETAILS_BY_CONTRACT_ID_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULTS_DETAILS_BY_ADDRESS_AND_TIMESTAMP_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULT_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULT_LOGS_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULT_LOGS_BY_ADDRESS_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_CONTRACT_RESULTS_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_NETWORK_EXCHANGERATE_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_NETWORK_FEES_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_TOKENS_ENDPOINT, [404]],
+    [MirrorNodeClient.GET_TRANSACTIONS_ENDPOINT, [404]],
+    [MirrorNodeClient.CONTRACT_CALL_ENDPOINT, [404]],
+    [MirrorNodeClient.CONTRACT_ADDRESS_STATE_ENDPOINT, [404]],
   ]);
 
   private static ETHEREUM_TRANSACTION_TYPE = 'ETHEREUMTRANSACTION';
@@ -428,11 +428,12 @@ export class MirrorNodeClient {
     }
   }
 
-  public async getAccount(idOrAliasOrEvmAddress: string, requestIdPrefix?: string) {
+  public async getAccount(idOrAliasOrEvmAddress: string, requestIdPrefix?: string, retries?: number) {
     return this.get(
       `${MirrorNodeClient.GET_ACCOUNTS_BY_ID_ENDPOINT}${idOrAliasOrEvmAddress}?transactions=false`,
       MirrorNodeClient.GET_ACCOUNTS_BY_ID_ENDPOINT,
       requestIdPrefix,
+      retries,
     );
   }
 
@@ -579,11 +580,12 @@ export class MirrorNodeClient {
     );
   }
 
-  public async getContract(contractIdOrAddress: string, requestIdPrefix?: string) {
+  public async getContract(contractIdOrAddress: string, requestIdPrefix?: string, retries?: number) {
     return this.get(
       `${MirrorNodeClient.GET_CONTRACT_ENDPOINT}${contractIdOrAddress}`,
       MirrorNodeClient.GET_CONTRACT_ENDPOINT,
       requestIdPrefix,
+      retries,
     );
   }
 
@@ -894,11 +896,12 @@ export class MirrorNodeClient {
     ).replace(MirrorNodeClient.TIMESTAMP_PLACEHOLDER, timestamp);
   }
 
-  public async getTokenById(tokenId: string, requestIdPrefix?: string) {
+  public async getTokenById(tokenId: string, requestIdPrefix?: string, retries?: number) {
     return this.get(
       `${MirrorNodeClient.GET_TOKENS_ENDPOINT}/${tokenId}`,
       MirrorNodeClient.GET_TOKENS_ENDPOINT,
       requestIdPrefix,
+      retries,
     );
   }
 
@@ -1058,6 +1061,7 @@ export class MirrorNodeClient {
     searchableTypes: any[] = [constants.TYPE_CONTRACT, constants.TYPE_ACCOUNT, constants.TYPE_TOKEN],
     callerName: string,
     requestIdPrefix?: string,
+    retries?: number,
   ) {
     const cachedLabel = `${constants.CACHE_KEY.RESOLVE_ENTITY_TYPE}_${entityIdentifier}`;
     const cachedResponse: { type: string; entity: any } | undefined = this.cacheService.get(
@@ -1078,7 +1082,7 @@ export class MirrorNodeClient {
       );
 
     if (searchableTypes.find((t) => t === constants.TYPE_CONTRACT)) {
-      const contract = await this.getContract(entityIdentifier, requestIdPrefix).catch(() => {
+      const contract = await this.getContract(entityIdentifier, requestIdPrefix, retries).catch(() => {
         return null;
       });
       if (contract) {
@@ -1096,7 +1100,7 @@ export class MirrorNodeClient {
       const promises = [
         searchableTypes.find((t) => t === constants.TYPE_ACCOUNT)
           ? buildPromise(
-              this.getAccount(entityIdentifier, requestIdPrefix).catch(() => {
+              this.getAccount(entityIdentifier, requestIdPrefix, retries).catch(() => {
                 return null;
               }),
             )
@@ -1108,7 +1112,7 @@ export class MirrorNodeClient {
         promises.push(
           searchableTypes.find((t) => t === constants.TYPE_TOKEN)
             ? buildPromise(
-                this.getTokenById(`0.0.${parseInt(entityIdentifier, 16)}`, requestIdPrefix).catch(() => {
+                this.getTokenById(`0.0.${parseInt(entityIdentifier, 16)}`, requestIdPrefix, retries).catch(() => {
                   return null;
                 }),
               )
