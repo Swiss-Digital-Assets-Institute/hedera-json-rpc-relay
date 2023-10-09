@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref_name == 'deploy-prod' && 'production' || 'development' }}
+      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
     env:
       SERVICES: relay,relay-ws
       APP_NAME: hedera-json-rpc
