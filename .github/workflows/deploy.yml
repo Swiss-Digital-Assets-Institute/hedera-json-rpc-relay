@@ -13,7 +13,7 @@ jobs:
     env:
       SERVICES: relay,relay-ws
       APP_NAME: hedera-json-rpc
-      ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
+      ENVIRONMENT: ${{ vars.ENVIRONMENT }}
       REGISTRY: ${{ secrets.ECR_REGISTRY }}
       K8S_VERSION: v1.27.0
       DOCKER_BUILDKIT: 1
