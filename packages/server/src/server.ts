@@ -1,4 +1,4 @@
-/*-
+/*
  *
  * Hedera JSON RPC Relay
  *
@@ -210,7 +210,13 @@ const logAndHandleResponse = async (methodName: any, methodParams: any, methodFu
 
     const response = await methodFunction(requestIdPrefix);
     if (response instanceof JsonRpcError) {
-      logger.error(`${requestIdPrefix} ${response.message}`);
+      // log error only if it is not a contract revert, otherwise log it as debug
+      if (response.code === predefined.CONTRACT_REVERT().code) {
+        logger.debug(`${requestIdPrefix} ${response.message}`);
+      } else {
+        logger.error(`${requestIdPrefix} ${response.message}`);
+      }
+
       return new JsonRpcError(
         {
           name: response.name,
@@ -646,6 +652,19 @@ app.useRpc('web3_client_version', async () => {
 app.useRpc('eth_maxPriorityFeePerGas', async () => {
   return logAndHandleResponse('eth_maxPriorityFeePerGas', [], (requestId) =>
     relay.eth().maxPriorityFeePerGas(requestId),
+  );
+});
+
+/**
+ * Debug related endpoints:
+ */
+
+app.useRpc('debug_traceTransaction', async (params: any) => {
+  const transactionHash = params[0];
+  const tracer = params[1].tracer;
+  const tracerConfig = params[1].tracerConfig;
+  return logAndHandleResponse('debug_traceTransaction', [transactionHash, tracer, tracerConfig], (requestId) =>
+    relay.eth().debugService().debug_traceTransaction(transactionHash, tracer, tracerConfig, requestId),
   );
 });
 

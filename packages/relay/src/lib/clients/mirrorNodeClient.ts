@@ -71,6 +71,7 @@ export class MirrorNodeClient {
   private static GET_CONTRACT_RESULTS_BY_ADDRESS_ENDPOINT = `contracts/${MirrorNodeClient.ADDRESS_PLACEHOLDER}/results`;
   private static GET_CONTRACT_RESULTS_DETAILS_BY_ADDRESS_AND_TIMESTAMP_ENDPOINT = `contracts/${MirrorNodeClient.ADDRESS_PLACEHOLDER}/results/${MirrorNodeClient.TIMESTAMP_PLACEHOLDER}`;
   private static GET_CONTRACT_RESULTS_DETAILS_BY_CONTRACT_ID_ENDPOINT = `contracts/${MirrorNodeClient.CONTRACT_ID_PLACEHOLDER}/results/${MirrorNodeClient.TIMESTAMP_PLACEHOLDER}`;
+  private static GET_CONTRACTS_RESULTS_ACTIONS = `contracts/results/${MirrorNodeClient.TRANSACTION_ID_PLACEHOLDER}/actions`;
   private static GET_CONTRACT_RESULT_ENDPOINT = 'contracts/results/';
   private static GET_CONTRACT_RESULT_LOGS_ENDPOINT = 'contracts/results/logs';
   private static GET_CONTRACT_RESULT_LOGS_BY_ADDRESS_ENDPOINT = `contracts/${MirrorNodeClient.ADDRESS_PLACEHOLDER}/results/logs`;
@@ -290,7 +291,7 @@ export class MirrorNodeClient {
     }
   }
 
-  private buildUrl(baseUrl: string) {
+  private buildUrl(baseUrl: string): string {
     if (!baseUrl.match(/^https?:\/\//)) {
       baseUrl = `${MirrorNodeClient.HTTPS_PREFIX}${baseUrl}`;
     }
@@ -341,7 +342,7 @@ export class MirrorNodeClient {
       }
 
       const ms = Date.now() - start;
-      this.logger.debug(`${requestIdPrefix} [${method}] ${path} ${response.status} ${ms} ms`);
+      this.logger.debug(`${requestId} [${method}] ${path} ${response.status} ${ms} ms`);
       this.mirrorResponseHistogram.labels(pathLabel, response.status).observe(ms);
       return response.data;
     } catch (error: any) {
@@ -377,23 +378,28 @@ export class MirrorNodeClient {
     effectiveStatusCode: number,
     method: REQUEST_METHODS,
     requestIdPrefix?: string,
-  ) {
+  ): null {
     const mirrorError = new MirrorNodeClientError(error, effectiveStatusCode);
     const acceptedErrorResponses = MirrorNodeClient.acceptedErrorStatusesResponsePerRequestPathMap.get(pathLabel);
 
     if (error.response && acceptedErrorResponses && acceptedErrorResponses.indexOf(effectiveStatusCode) !== -1) {
       this.logger.debug(`${requestIdPrefix} [${method}] ${path} ${effectiveStatusCode} status`);
-      if (pathLabel === MirrorNodeClient.CONTRACT_CALL_ENDPOINT) {
-        this.logger.warn(
-          `${requestIdPrefix} [${method}] ${path} Error details: ( StatusCode: '${effectiveStatusCode}', StatusText: '${
-            error.response.statusText
-          }', Data: '${JSON.stringify(error.response.data)}')`,
-        );
-      }
       return null;
     }
 
-    this.logger.error(new Error(error.message), `${requestIdPrefix} [${method}] ${path} ${effectiveStatusCode} status`);
+    // Contract Call returns 400 for a CONTRACT_REVERT but is a valid response, expected and should not be logged as error:
+    if (pathLabel === MirrorNodeClient.CONTRACT_CALL_ENDPOINT && effectiveStatusCode === 400) {
+      this.logger.debug(
+        `${requestIdPrefix} [${method}] ${path} Contract Revert: ( StatusCode: '${effectiveStatusCode}', StatusText: '${
+          error.response.statusText
+        }', Detail: '${JSON.stringify(error.response.detail)}',Data: '${JSON.stringify(error.response.data)}')`,
+      );
+    } else {
+      this.logger.error(
+        new Error(error.message),
+        `${requestIdPrefix} [${method}] ${path} ${effectiveStatusCode} status`,
+      );
+    }
 
     throw mirrorError;
   }
@@ -547,7 +553,11 @@ export class MirrorNodeClient {
 
   public async getBlock(hashOrBlockNumber: string | number, requestIdPrefix?: string) {
     const cachedLabel = `${constants.CACHE_KEY.GET_BLOCK}.${hashOrBlockNumber}`;
-    const cachedResponse: any = this.cacheService.get(cachedLabel, MirrorNodeClient.GET_BLOCK_ENDPOINT);
+    const cachedResponse: any = this.cacheService.get(
+      cachedLabel,
+      MirrorNodeClient.GET_BLOCK_ENDPOINT,
+      requestIdPrefix,
+    );
     if (cachedResponse) {
       return cachedResponse;
     }
@@ -593,13 +603,13 @@ export class MirrorNodeClient {
     return `${constants.CACHE_KEY.GET_CONTRACT}.valid.${contractIdOrAddress}`;
   }
 
-  public getIsValidContractCache(contractIdOrAddress): any {
+  public getIsValidContractCache(contractIdOrAddress, requestIdPrefix?: string): any {
     const cachedLabel = this.getIsValidContractCacheLabel(contractIdOrAddress);
-    return this.cacheService.get(cachedLabel, MirrorNodeClient.GET_CONTRACT_ENDPOINT);
+    return this.cacheService.get(cachedLabel, MirrorNodeClient.GET_CONTRACT_ENDPOINT, requestIdPrefix);
   }
 
   public async isValidContract(contractIdOrAddress: string, requestIdPrefix?: string, retries?: number) {
-    const cachedResponse: any = this.getIsValidContractCache(contractIdOrAddress);
+    const cachedResponse: any = this.getIsValidContractCache(contractIdOrAddress, requestIdPrefix);
     if (cachedResponse != undefined) {
       return cachedResponse;
     }
@@ -620,7 +630,11 @@ export class MirrorNodeClient {
 
   public async getContractId(contractIdOrAddress: string, requestIdPrefix?: string, retries?: number) {
     const cachedLabel = `${constants.CACHE_KEY.GET_CONTRACT}.id.${contractIdOrAddress}`;
-    const cachedResponse: any = this.cacheService.get(cachedLabel, MirrorNodeClient.GET_CONTRACT_ENDPOINT);
+    const cachedResponse: any = this.cacheService.get(
+      cachedLabel,
+      MirrorNodeClient.GET_CONTRACT_ENDPOINT,
+      requestIdPrefix,
+    );
     if (cachedResponse != undefined) {
       return cachedResponse;
     }
@@ -722,6 +736,14 @@ export class MirrorNodeClient {
     );
   }
 
+  public async getContractsResultsActions(transactionIdOrHash: string, requestIdPrefix?: string): Promise<any> {
+    return this.get(
+      `${this.getContractResultsActionsByTransactionIdPath(transactionIdOrHash)}`,
+      MirrorNodeClient.GET_CONTRACTS_RESULTS_ACTIONS,
+      requestIdPrefix,
+    );
+  }
+
   public async getContractResultsByAddress(
     contractIdOrAddress: string,
     contractResultsParams?: IContractResultsParams,
@@ -813,7 +835,7 @@ export class MirrorNodeClient {
 
   public async getEarliestBlock(requestId?: string) {
     const cachedLabel = `${constants.CACHE_KEY.GET_BLOCK}.earliest`;
-    const cachedResponse: any = this.cacheService.get(cachedLabel, MirrorNodeClient.GET_BLOCKS_ENDPOINT);
+    const cachedResponse: any = this.cacheService.get(cachedLabel, MirrorNodeClient.GET_BLOCKS_ENDPOINT, requestId);
     if (cachedResponse != undefined) {
       return cachedResponse;
     }
@@ -894,6 +916,13 @@ export class MirrorNodeClient {
       MirrorNodeClient.CONTRACT_ID_PLACEHOLDER,
       contractId,
     ).replace(MirrorNodeClient.TIMESTAMP_PLACEHOLDER, timestamp);
+  }
+
+  private getContractResultsActionsByTransactionIdPath(transactionIdOrHash: string) {
+    return MirrorNodeClient.GET_CONTRACTS_RESULTS_ACTIONS.replace(
+      MirrorNodeClient.TRANSACTION_ID_PLACEHOLDER,
+      transactionIdOrHash,
+    );
   }
 
   public async getTokenById(tokenId: string, requestIdPrefix?: string, retries?: number) {

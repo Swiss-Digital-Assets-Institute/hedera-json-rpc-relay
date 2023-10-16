@@ -24,7 +24,7 @@ import { ethers } from 'ethers';
 import { AliasAccount } from '../clients/servicesClient';
 import Assertions from '../helpers/assertions';
 import { Utils } from '../helpers/utils';
-import { ContractFunctionParameters } from '@hashgraph/sdk';
+import { ContractFunctionParameters, TransferTransaction } from '@hashgraph/sdk';
 
 // local resources
 import parentContractJson from '../contracts/Parent.json';
@@ -33,7 +33,9 @@ import { predefined } from '../../../relay/src/lib/errors/JsonRpcError';
 import Constants from '../../../relay/src/lib/constants';
 import RelayCalls from '../../tests/helpers/constants';
 const Address = RelayCalls;
-import { numberTo0x } from '../../../../packages/relay/src/formatters';
+import basicContract from '../../tests/contracts/Basic.json';
+import { numberTo0x, prepend0x } from '../../../../packages/relay/src/formatters';
+import constants from '../../../relay/src/lib/constants';
 
 describe('@api-batch-1 RPC Server Acceptance Tests', function () {
   this.timeout(240 * 1000); // 240 seconds
@@ -49,6 +51,7 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
   let mirrorContract;
   let mirrorContractDetails;
   let requestId;
+  let hts;
 
   const CHAIN_ID = process.env.CHAIN_ID || 0;
   const INCORRECT_CHAIN_ID = 999;
@@ -609,8 +612,9 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
         mirrorResult.to = mirrorContract.evm_address;
 
         const res = await relay.call(RelayCalls.ETH_ENDPOINTS.ETH_GET_TRANSACTION_RECEIPT, [legacyTxHash], requestId);
+        const currentPrice = await relay.gasPrice(requestId);
 
-        Assertions.transactionReceipt(res, mirrorResult);
+        Assertions.transactionReceipt(res, mirrorResult, currentPrice);
       });
 
       it('@release should execute "eth_getTransactionReceipt" for hash of London transaction', async function () {
@@ -636,8 +640,9 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
           [transactionHash],
           requestId,
         );
+        const currentPrice = await relay.gasPrice(requestId);
 
-        Assertions.transactionReceipt(res, mirrorResult);
+        Assertions.transactionReceipt(res, mirrorResult, currentPrice);
       });
 
       it('@release should execute "eth_getTransactionReceipt" for hash of 2930 transaction', async function () {
@@ -661,8 +666,9 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
           [transactionHash],
           requestId,
         );
+        const currentPrice = await relay.gasPrice(requestId);
 
-        Assertions.transactionReceipt(res, mirrorResult);
+        Assertions.transactionReceipt(res, mirrorResult, currentPrice);
       });
 
       it('@release should fail to execute "eth_getTransactionReceipt" for hash of London transaction', async function () {
@@ -682,6 +688,53 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
           signedTx + '11',
           requestId,
         ]);
+      });
+
+      it('@release should return the right "effectiveGasPrice" for SYNTHETIC HTS transaction', async function () {
+        const tokenId = await servicesNode.createToken(1000, requestId);
+        await accounts[2].client.associateToken(tokenId, requestId);
+        const currentPrice = await relay.gasPrice(requestId);
+        const transaction = new TransferTransaction()
+          .addTokenTransfer(tokenId, servicesNode._thisAccountId(), -10)
+          .addTokenTransfer(tokenId, accounts[2].accountId, 10)
+          .setTransactionMemo('Relay test token transfer');
+        const resp = await transaction.execute(servicesNode.client);
+        await resp.getRecord(servicesNode.client);
+        await new Promise((r) => setTimeout(r, 1000));
+        const logsRes = await mirrorNode.get(`/contracts/results/logs?limit=1`, requestId);
+        const blockNumber = logsRes.logs[0].block_number;
+        const formattedBlockNumber = prepend0x(blockNumber.toString(16));
+        const contractId = logsRes.logs[0].contract_id;
+        const transactionHash = logsRes.logs[0].transaction_hash;
+        if (contractId !== tokenId.toString()) {
+          return;
+        }
+
+        // load the block in cache
+        await relay.call(RelayCalls.ETH_ENDPOINTS.ETH_GET_BLOCK_BY_NUMBER, [formattedBlockNumber, true], requestId);
+        const receiptFromRelay = await relay.call(
+          RelayCalls.ETH_ENDPOINTS.ETH_GET_TRANSACTION_RECEIPT,
+          [transactionHash],
+          requestId,
+        );
+
+        expect(receiptFromRelay.effectiveGasPrice).to.equal(prepend0x(currentPrice.toString(16)));
+      });
+
+      it('@release should return the right "effectiveGasPrice" for SYNTHETIC Contract Call transaction', async function () {
+        const currentPrice = await relay.gasPrice(requestId);
+        const transactionHash = mirrorContractDetails.hash;
+        const formattedBlockNumber = prepend0x(mirrorContractDetails.block_number.toString(16));
+
+        // load the block in cache
+        await relay.call(RelayCalls.ETH_ENDPOINTS.ETH_GET_BLOCK_BY_NUMBER, [formattedBlockNumber, true], requestId);
+        const receiptFromRelay = await relay.call(
+          RelayCalls.ETH_ENDPOINTS.ETH_GET_TRANSACTION_RECEIPT,
+          [transactionHash],
+          requestId,
+        );
+
+        expect(receiptFromRelay.effectiveGasPrice).to.equal(prepend0x(currentPrice.toString(16)));
       });
 
       it('should execute "eth_getTransactionReceipt" for non-existing hash', async function () {
@@ -885,6 +938,68 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
         expect(info.created_contract_ids.length).to.be.equal(1);
       });
 
+      it.only('should execute "eth_sendRawTransaction" and fail when deploying too large contract', async function () {
+        const gasPrice = await relay.gasPrice(requestId);
+        const transaction = {
+          type: 2,
+          chainId: Number(CHAIN_ID),
+          nonce: await relay.getAccountNonce(accounts[1].address, requestId),
+          maxPriorityFeePerGas: gasPrice,
+          maxFeePerGas: gasPrice,
+          gasLimit: defaultGasLimit,
+          data: '0x' + '00'.repeat(132221),
+        };
+
+        const signedTx = await accounts[1].wallet.signTransaction(transaction);
+        const error = predefined.TRANSACTION_SIZE_TOO_BIG('132320', String(constants.SEND_RAW_TRANSACTION_SIZE_LIMIT));
+
+        await Assertions.assertPredefinedRpcError(error, sendRawTransaction, true, relay, [signedTx, requestId]);
+      });
+
+      it('should execute "eth_sendRawTransaction" of type 1 and deploy a real contract', async function () {
+        //omitting the "to" and "nonce" fields when creating a new contract
+        const transaction = {
+          ...defaultLegacy2930TransactionData,
+          value: 0,
+          data: basicContract.bytecode,
+          nonce: await relay.getAccountNonce(accounts[2].address, requestId),
+        };
+
+        const signedTx = await accounts[2].wallet.signTransaction(transaction);
+        const transactionHash = await relay.sendRawTransaction(signedTx, requestId);
+        const info = await mirrorNode.get(`/contracts/results/${transactionHash}`, requestId);
+        expect(info).to.have.property('contract_id');
+        expect(info.contract_id).to.not.be.null;
+        expect(info).to.have.property('created_contract_ids');
+        expect(info.created_contract_ids.length).to.be.equal(1);
+        expect(info.max_fee_per_gas).to.eq('0x');
+        expect(info.max_priority_fee_per_gas).to.eq('0x');
+        expect(info).to.have.property('access_list');
+      });
+
+      it('should execute "eth_sendRawTransaction" of type 2 and deploy a real contract', async function () {
+        //omitting the "to" and "nonce" fields when creating a new contract
+        const transaction = {
+          ...defaultLondonTransactionData,
+          value: 0,
+          data: basicContract.bytecode,
+          nonce: await relay.getAccountNonce(accounts[2].address, requestId),
+        };
+
+        const signedTx = await accounts[2].wallet.signTransaction(transaction);
+        const transactionHash = await relay.sendRawTransaction(signedTx, requestId);
+        const info = await mirrorNode.get(`/contracts/results/${transactionHash}`, requestId);
+        expect(info).to.have.property('contract_id');
+        expect(info.contract_id).to.not.be.null;
+        expect(info).to.have.property('max_fee_per_gas');
+        expect(info).to.have.property('max_priority_fee_per_gas');
+        expect(info).to.have.property('created_contract_ids');
+        expect(info.created_contract_ids.length).to.be.equal(1);
+        expect(info).to.have.property('type');
+        expect(info.type).to.be.equal(2);
+        expect(info).to.have.property('access_list');
+      });
+
       it('should execute "eth_sendRawTransaction" and deploy a contract with more than 2 HBAR transaction fee and less than max transaction fee', async function () {
         const balanceBefore = await relay.getBalance(accounts[2].wallet.address, 'latest', requestId);
 
@@ -1035,7 +1150,8 @@ describe('@api-batch-1 RPC Server Acceptance Tests', function () {
           mirrorResult.to = mirrorContract.evm_address;
 
           const res = await relay.call(RelayCalls.ETH_ENDPOINTS.ETH_GET_TRANSACTION_RECEIPT, [txHash1], requestId);
-          Assertions.transactionReceipt(res, mirrorResult);
+          const currentPrice = await relay.gasPrice(requestId);
+          Assertions.transactionReceipt(res, mirrorResult, currentPrice);
           const error = predefined.NONCE_TOO_LOW(nonce, nonce + 1);
 
           await Assertions.assertPredefinedRpcError(error, sendRawTransaction, true, relay, [signedTx, requestId]);
