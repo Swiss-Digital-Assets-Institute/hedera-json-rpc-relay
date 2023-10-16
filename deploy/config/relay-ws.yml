@@ -39,3 +39,7 @@ common: &common
 dev:
   <<: *common
   kubeNamespace: dev
+
+prod:
+  <<: *common
+  kubeNamespace: prod
