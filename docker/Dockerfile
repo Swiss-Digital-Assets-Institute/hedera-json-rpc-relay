@@ -1,7 +1,5 @@
 FROM ghcr.io/swiss-digital-assets-institute/nodejs:main as relay
 
-ENV NODE_ENV production
-
 ARG UID=1000
 
 RUN useradd --home /node --no-log-init --create-home -Uu ${UID} -s /bin/bash node && \
@@ -21,9 +19,6 @@ WORKDIR /app
 
 COPY --chown=node:node package*.json lerna.json /app/
 COPY --chown=node:node ./packages/ /app/packages/
-
-RUN npm ci -q --omit=dev --ignore-scripts && \
-    npm cache clean --force --loglevel=error
 
 RUN npm install
 RUN npm run build
