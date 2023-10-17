@@ -20,7 +20,6 @@ WORKDIR /app
 COPY --chown=node:node package*.json lerna.json /app/
 COPY --chown=node:node ./packages/ /app/packages/
 
-
 RUN npm install
 RUN npm run build
 
