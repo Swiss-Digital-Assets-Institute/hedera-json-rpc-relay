@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - deploy-prod
+      - dev
 
 jobs:
   deploy:
