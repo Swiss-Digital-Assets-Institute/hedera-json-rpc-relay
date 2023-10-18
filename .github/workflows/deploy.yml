@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main
-      - deploy-prod
+      - add-vault-fetcher
 
 jobs:
   deploy:
@@ -30,6 +30,14 @@ jobs:
 
       - name: Set Docker image
         run: APP_NAME=${{ env.APP_NAME}} IMAGE_TAG=${{ steps.vars.outputs.image_tag }} REGISTRY=${{ env.REGISTRY }} SERVICES=${{ env.SERVICES }} ./deploy/set_images.sh
+
+      - name: Generate secrets
+        env:
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+        run: >
+            $GITHUB_WORKSPACE/deploy/vault_fetcher.py -s ${{ env.ENVIRONMENT }}/${{ env.APP_NAME }}-relay -f dotenv -o ./.env
 
       - name: Build containers
         run: docker compose -f docker-compose.yml build --pull
