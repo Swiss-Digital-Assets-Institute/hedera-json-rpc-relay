@@ -1,6 +1,6 @@
 common: &common
   name: relay-ws
-  serviceSpecificSecret: false
+  serviceSpecificSecret: True
   port:
     source: 8546
     target: 8546
@@ -39,7 +39,9 @@ common: &common
 dev:
   <<: *common
   kubeNamespace: dev
+  secretPath: dev/hedera-json-rpc-relay-ws
 
 prod:
   <<: *common
   kubeNamespace: prod
+  secretPath: prod/hedera-json-rpc-relay-ws
