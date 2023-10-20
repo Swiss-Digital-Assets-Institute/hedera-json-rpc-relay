@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: env-{{ name }}
+  name: env-{{ app }}-{{ name }}
   {% if kubeNamespace %}
   namespace: {{ kubeNamespace }}
   {% endif %}
